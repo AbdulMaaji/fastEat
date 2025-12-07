@@ -1,0 +1,9 @@
+{
+  "name": "FastEat",
+  "description": "A social-media-style food marketplace connecting fast food vendors with hungry customers via feed, map, and business-focused chat.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
