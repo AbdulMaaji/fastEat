@@ -9,6 +9,8 @@ import OrderHistoryPage from './pages/OrderHistoryPage';
 import OrdersPage from './pages/OrdersPage';
 import MapPage from './pages/MapPage';
 import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 
 // Helper to check for subdomain
 const getSubdomain = () => {
@@ -38,16 +40,20 @@ const router = createBrowserRouter(
                 <Route path="/menu" element={<VendorProfilePage vendorSlug={subdomain} view="menu" />} />
             </Route>
         ) : (
-            <Route element={<MainLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/feed" element={<HomePage />} />
-                <Route path="/map" element={<MapPage />} />
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/history" element={<OrderHistoryPage />} />
-                <Route path="/profile/:vendorId" element={<VendorProfilePage />} />
-            </Route>
+            <>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route element={<MainLayout />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/feed" element={<HomePage />} />
+                    <Route path="/map" element={<MapPage />} />
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/history" element={<OrderHistoryPage />} />
+                    <Route path="/profile/:vendorId" element={<VendorProfilePage />} />
+                </Route>
+            </>
         )
     )
 );

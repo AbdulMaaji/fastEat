@@ -8,6 +8,7 @@ import { Heart, ChevronRight } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
     const {
+        currentUser,
         currentUserRole,
         cart,
         notifications,
@@ -49,10 +50,23 @@ const MainLayout: React.FC = () => {
                             </span>
                         </Link>
                     )}
-                    {/* Favorites Button - could be a modal or route */}
+                    {/* Favorites Button */}
                     <button className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-brand-red transition-colors">
                         <Heart size={18} />
                     </button>
+                    {/* Auth Status */}
+                    {currentUser ? (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold hidden sm:inline">{currentUser.username}</span>
+                            <Link to="/profile">
+                                <img src={currentUser.avatar || 'https://via.placeholder.com/32'} className="w-8 h-8 rounded-full bg-gray-200 border border-gray-100 object-cover" alt="Profile" />
+                            </Link>
+                        </div>
+                    ) : (
+                        <Link to="/login" className="px-4 py-1.5 bg-brand-dark text-white text-xs font-bold rounded-full hover:bg-gray-800 transition-colors">
+                            Login
+                        </Link>
+                    )}
                 </div>
             </div>
 

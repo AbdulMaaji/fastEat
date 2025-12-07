@@ -7,23 +7,19 @@ interface AppContextType {
     currentUser: AppUser | null;
     setCurrentUser: React.Dispatch<React.SetStateAction<AppUser | null>>;
     currentUserRole: UserRole;
-    setCurrentUserRole: React.Dispatch<React.SetStateAction<UserRole>>;
     userProfile: UserProfile;
-    setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+    login: (credentials: any) => Promise<void>;
+    signup: (data: any) => Promise<void>;
+    logout: () => void;
 
     // Data
     vendors: Vendor[];
-    setVendors: React.Dispatch<React.SetStateAction<Vendor[]>>;
     drivers: Driver[];
-    setDrivers: React.Dispatch<React.SetStateAction<Driver[]>>;
     posts: Post[];
-    setPosts: React.Dispatch<React.SetStateAction<Post[]>>;
     orders: Order[];
-    setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
 
     // Cart
     cart: CartItem[];
-    setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
     addToCart: (item: MenuItem, vendorId: string, qty?: number) => void;
     updateCartQuantity: (itemId: string, delta: number) => void;
     clearCart: () => void;
@@ -52,7 +48,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         name: 'Guest User',
         email: 'guest@example.com',
         phone: '',
-        bio: 'Hungry user.',
+        bio: '',
         avatar: 'https://via.placeholder.com/150',
         loyaltyPoints: {},
         savedAddresses: []
@@ -90,7 +86,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             if (existing) {
                 return prev.map(i => i.menuItem.id === item.id ? { ...i, quantity: i.quantity + qty } : i);
             }
-            // Check if adding from different vendor
             if (prev.length > 0 && prev[0].vendorId !== vendorId) {
                 if (!confirm('Start a new basket? Adding items from a different vendor will clear your current cart.')) {
                     return prev;
@@ -116,30 +111,68 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const toggleFavorite = (vendorId: string) => {
         setFavorites(prev => {
-            const newFavs = new Set(prev);
-            if (newFavs.has(vendorId)) {
-                newFavs.delete(vendorId);
-            } else {
-                newFavs.add(vendorId);
+            if (data.access) {
+                localStorage.setItem('accessToken', data.access);
+                localStorage.setItem('refreshToken', data.refresh);
+                // Fetch user
+                const user = await api.getMe();
+                setCurrentUser(user);
+                setCurrentUserRole(user.role);
+                addNotification({ message: 'Logged in successfully', type: 'success' });
             }
-            return newFavs;
-        });
+        } catch (err: any) {
+            addNotification({ message: err.message || 'Login failed', type: 'error' });
+            throw err;
+        }
+    };
+
+    const signup = async (data: any) => {
+        try {
+            const res = await api.signup(data);
+            if (res.access) {
+                localStorage.setItem('accessToken', res.access);
+                localStorage.setItem('refreshToken', res.refresh);
+                // Fetch user
+                const user = await api.getMe();
+                setCurrentUser(user);
+                setCurrentUserRole(user.role);
+                addNotification({ message: 'Account created!', type: 'success' });
+            }
+        } catch (err: any) {
+            addNotification({ message: err.message || 'Signup failed', type: 'error' });
+            throw err;
+        }
+    };
+
+    const logout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        setCurrentUser(null);
+        setCurrentUserRole(UserRole.CUSTOMER);
+        setCart([]);
+        addNotification({ message: 'Logged out', type: 'info' });
     };
 
     // Initial Effects
     useEffect(() => {
-        // Fetch Vendors
+        const checkAuth = async () => {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                try {
+                    const user = await api.getMe();
+                    setCurrentUser(user);
+                    setCurrentUserRole(user.role);
+                } catch (e) {
+                    console.error("Token invalid", e);
+                    logout();
+                }
+            }
+        };
+        checkAuth();
+
         api.getVendors().then(vs => {
             setVendors(vs);
         }).catch(err => console.error("Failed to load vendors", err));
-
-        // Poll Orders
-        const pollOrders = () => {
-            // In a real app we might only poll active orders or use websockets
-            api.getOrders().then(os => setOrders(os)).catch(e => console.error(e));
-        };
-        pollOrders();
-        const interval = setInterval(pollOrders, 5000);
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -151,21 +184,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 }
             );
         }
-
-        return () => clearInterval(interval);
     }, []);
 
     return (
         <AppContext.Provider value={{
             currentUser, setCurrentUser,
-            currentUserRole, setCurrentUserRole,
-            userProfile, setUserProfile,
-            vendors, setVendors,
-            drivers, setDrivers,
-            posts, setPosts,
-            orders, setOrders,
-            cart, setCart,
-            addToCart, updateCartQuantity, clearCart,
+            currentUserRole,
+            userProfile,
+            login, signup, logout,
+            vendors,
+            drivers,
+            posts,
+            orders,
+            cart, addToCart, updateCartQuantity, clearCart,
             favorites, toggleFavorite,
             notifications, addNotification, removeNotification,
             currentLocation, setCurrentLocation
