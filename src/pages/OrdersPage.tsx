@@ -3,6 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { ShoppingBag, MapPin, ChevronRight, Minus, Plus, Store, Truck, Clock, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Order, OrderStatus } from '../types';
+import { api } from '../services/api';
 
 const OrdersPage: React.FC = () => {
     const {
@@ -87,40 +88,35 @@ const OrdersPage: React.FC = () => {
 
         const scheduledTime = preferredOrderTime === 'ASAP' ? Date.now() : parseInt(preferredOrderTime);
 
-        const newOrder: Order = {
-            id: `ord-${Date.now()}`,
-            vendorId: activeCartVendorId,
-            customerId: 'user-1',
-            items: [...cart],
-            total: finalTotal,
-            status: OrderStatus.PREPARING,
+        // Prepare payload for backend
+        const orderPayload = {
+            vendor: activeCartVendorId, // Accessing by attributes that match Model fields mostly or what serializer expects
+            customer_id: 'user-1', // Mock user
+            status: 'PENDING',
             type: orderType,
-            timestamp: Date.now(),
-            preferredTime: scheduledTime,
-            deliveryLocation: orderType === 'DELIVERY' ? { address: deliveryAddress || 'Current Location' } : undefined,
-            pointsRedeemed: pointsToDeduct,
-            pointsEarned: pointsEarned,
-            deliveryFee: deliveryCost
+            delivery_location: orderType === 'DELIVERY' ? { address: deliveryAddress || 'Current Location' } : {},
+            points_redeemed: pointsToDeduct,
+            points_earned: pointsEarned,
+            delivery_fee: deliveryCost,
+            items: cart.map(item => ({
+                menu_item_id: item.menuItem.id, // Backend expects menu_item_id
+                quantity: item.quantity
+            })),
+            total: finalTotal // Backend might ignore this and recalc, but sending anyway
         };
 
-        setOrders(prev => [newOrder, ...prev]);
-        setCart([]);
-        setUseLoyaltyPoints(false);
-        setPreferredOrderTime('ASAP');
-
-        // Simulate acceptance delay
-        if (orderType === 'DELIVERY') {
-            setTimeout(() => {
-                setOrders(prev => prev.map(o =>
-                    o.id === newOrder.id
-                        ? { ...o, status: OrderStatus.READY }
-                        : o
-                ));
-            }, 5000);
-        }
-
-        // Navigate to history or tracking?
-        // navigate('/history');
+        api.createOrder(orderPayload)
+            .then(newOrder => {
+                setOrders(prev => [newOrder, ...prev]);
+                setCart([]);
+                setUseLoyaltyPoints(false);
+                setPreferredOrderTime('ASAP');
+                alert('Order placed successfully!');
+            })
+            .catch(err => {
+                console.error("Order failed", err);
+                alert('Failed to place order. See console.');
+            });
     };
 
     const subtotal = cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);

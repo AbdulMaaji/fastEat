@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'posts',
     'rest_framework',
     'loyalty',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserRole, User as AppUser, Post, Vendor, Order, CartItem, MenuItem, OrderStatus, UserProfile, Driver } from '../types';
+import { api } from '../services/api';
 
 interface AppContextType {
     // Auth
@@ -127,6 +128,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Initial Effects
     useEffect(() => {
+        // Fetch Vendors
+        api.getVendors().then(vs => {
+            setVendors(vs);
+        }).catch(err => console.error("Failed to load vendors", err));
+
+        // Poll Orders
+        const pollOrders = () => {
+            // In a real app we might only poll active orders or use websockets
+            api.getOrders().then(os => setOrders(os)).catch(e => console.error(e));
+        };
+        pollOrders();
+        const interval = setInterval(pollOrders, 5000);
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -137,6 +151,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 }
             );
         }
+
+        return () => clearInterval(interval);
     }, []);
 
     return (
