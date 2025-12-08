@@ -1,6 +1,6 @@
 import React from 'react';
-import { AppProvider } from './context/AppContext';
-import { AppRouter } from './router';
+import { AppProvider } from './src/context/AppContext';
+import { AppRouter } from './src/router';
 
 const App: React.FC = () => {
     return (

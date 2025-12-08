@@ -111,9 +111,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const toggleFavorite = (vendorId: string) => {
         setFavorites(prev => {
-            if (data.access) {
-                localStorage.setItem('accessToken', data.access);
-                localStorage.setItem('refreshToken', data.refresh);
+            const next = new Set(prev);
+            if (next.has(vendorId)) {
+                next.delete(vendorId);
+            } else {
+                next.add(vendorId);
+            }
+            return next;
+        });
+    };
+
+    const login = async (credentials: any) => {
+        try {
+            const res = await api.login(credentials);
+            if (res.access) {
+                localStorage.setItem('accessToken', res.access);
+                localStorage.setItem('refreshToken', res.refresh);
                 // Fetch user
                 const user = await api.getMe();
                 setCurrentUser(user);
@@ -125,6 +138,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             throw err;
         }
     };
+
+    // Sync currentUser to userProfile
+    useEffect(() => {
+        if (currentUser) {
+            setUserProfile(prev => ({
+                ...prev,
+                name: currentUser.username,
+                email: currentUser.email,
+                phone: currentUser.phone_number || prev.phone,
+                avatar: currentUser.avatar || prev.avatar
+            }));
+        }
+    }, [currentUser]);
 
     const signup = async (data: any) => {
         try {
